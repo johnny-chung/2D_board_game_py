@@ -20,16 +20,30 @@ def evaluate_board(board, player):
                 (j > 0) + (j < max_col_idx)
             score = abs(board[i][j]) + num_neighbour
 
+            neighbour_of = False
+            neighbour_list = [(0 - (i > 0), 0), (0, 0 - (j > 0)),
+                              ((i < max_row_idx), 0), (0, (j < max_col_idx))]
+            for neighbour in neighbour_list:
+                if neighbour[0] != 0 or neighbour[1] != 0:
+                    n_x = i + neighbour[0]
+                    n_y = j + neighbour[1]
+                    n_score = (n_x > 0) + (n_x < max_row_idx) + \
+                        (n_y > 0) + (n_y < max_col_idx)
+                    if board[n_x][n_y] == n_score - 1:
+                        neighbour_of = True
+            if neighbour_of:
+                score -= num_neighbour
+
             # check if the neighbour cell is -1 from overflow, if true, deduct mark
             # to simplify, ignore edge case
-            if i > 1 and i < max_row_idx and j > 1 and j < max_col_idx:
-                neighbour_list = [(1, 0), (0, 1), (-1, 0), (0, -1)]
-                neighbour_of = False
-                for neighbour in neighbour_list:
-                    if board[i + neighbour[0]][j + neighbour[1]] == 3:
-                        neighbour_of = True
-                if neighbour_of:
-                    score -= 4
+            # if i > 1 and i < max_row_idx and j > 1 and j < max_col_idx:
+            #     neighbour_list = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+            #     neighbour_of = False
+            #     for neighbour in neighbour_list:
+            #         if board[i + neighbour[0]][j + neighbour[1]] == 3:
+            #             neighbour_of = True
+            #     if neighbour_of:
+            #         score -= 4
 
             # positive add to player 1
             if board[i][j] > 0:
