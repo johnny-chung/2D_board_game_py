@@ -184,118 +184,140 @@ for i in range(8):
 frame = 0
 
 # Initialize Pygame
-pygame.init()
-window = pygame.display.set_mode((1200, 800))
 
-pygame.font.init()
-font = pygame.font.Font(None, 36)  # Change the size as needed
-bigfont = pygame.font.Font(None, 108)
-# Create the game board
-# board = [[0 for _ in range(GRID_SIZE[0])] for _ in range(GRID_SIZE[1])]
-player1_dropdown = Dropdown(900, 50, 200, 50, ['Human', 'AI'])
-player2_dropdown = Dropdown(900, 110, 200, 50, ['Human', 'AI'])
+restart = True
+while restart:
+    pygame.init()
+    window = pygame.display.set_mode((1200, 800))
+    pygame.font.init()
+    font = pygame.font.Font(None, 36)  # Change the size as needed
+    bigfont = pygame.font.Font(None, 108)
+    # Create the game board
+    # board = [[0 for _ in range(GRID_SIZE[0])] for _ in range(GRID_SIZE[1])]
+    player1_dropdown = Dropdown(900, 50, 200, 50, ['Human', 'AI'])
+    player2_dropdown = Dropdown(900, 110, 200, 50, ['Human', 'AI'])
+    level_dropdown = Dropdown(900, 180, 200, 50, ['Easy', 'Hard'])
+    status = ["", ""]
+    current_player = 0
+    board = Board(GRID_SIZE[1], GRID_SIZE[0], p1_sprites, p2_sprites)
+    # Game loop
 
-status = ["", ""]
-current_player = 0
-board = Board(GRID_SIZE[1], GRID_SIZE[0], p1_sprites, p2_sprites)
-# Game loop
-running = True
-overflow_boards = Queue()
-overflowing = False
-numsteps = 0
-has_winner = False
-bots = [PlayerOne(), PlayerTwo()]
-grid_col = -1
-grid_row = -1
-choice = [None, None]
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        else:
-            player1_dropdown.handle_event(event)
-            player2_dropdown.handle_event(event)
-            choice[0] = player1_dropdown.get_choice()
-            choice[1] = player2_dropdown.get_choice()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = event.pos
-                row = y - Y_OFFSET
-                col = x - X_OFFSET
-                grid_row, grid_col = row // CELL_SIZE, col // CELL_SIZE
-
-    win = board.check_win()
-    if win != 0:
-        winner = 1
-        if win == -1:
-            winner = 2
-        has_winner = True
-
-    if not has_winner:
-        if overflowing:
-            status[0] = "Overflowing"
-            if not overflow_boards.is_empty():
-                if repeat_step == FULL_DELAY:
-                    next = overflow_boards.dequeue()
-                    board.set(next)
-                    repeat_step = 0
-                else:
-                    repeat_step += 1
+    restart = False
+    running = True
+    overflow_boards = Queue()
+    overflowing = False
+    numsteps = 0
+    has_winner = False
+    bots = [PlayerOne(), PlayerTwo()]
+    grid_col = -1
+    grid_row = -1
+    choice = [None, None]
+    lv_choice = None
+    tree_height = 2
+    while running and restart == False:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    print('Restart')
+                    restart = True
             else:
-                overflowing = False
-
-                # goes between 0 and 1
-                current_player = (current_player + 1) % 2
-
-        else:
-            status[0] = "Player " + str(current_player + 1) + "'s turn"
-            make_move = False
-            if choice[current_player] == 1:
-                (grid_row, grid_col) = bots[current_player].get_play(
-                    board.get_board())
-                status[1] = "Bot chose row {}, col {}".format(
-                    grid_row, grid_col)
-                if not board.valid_move(grid_row, grid_col, player_id[current_player]):
-                    has_winner = True
-                    # if p1 makes an invalid move, p2 wins.  if p2 makes an invalid move p1 wins
-                    winner = ((current_player + 1) % 2) + 1
+                player1_dropdown.handle_event(event)
+                player2_dropdown.handle_event(event)
+                level_dropdown.handle_event(event)
+                choice[0] = player1_dropdown.get_choice()
+                choice[1] = player2_dropdown.get_choice()
+                lv_choice = level_dropdown.get_choice()
+                if lv_choice == 0:
+                    tree_height = 2
                 else:
-                    make_move = True
-            else:
-                if board.valid_move(grid_row, grid_col, player_id[current_player]):
-                    make_move = True
+                    tree_height = 4
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = event.pos
+                    row = y - Y_OFFSET
+                    col = x - X_OFFSET
+                    grid_row, grid_col = row // CELL_SIZE, col // CELL_SIZE
 
-            if make_move:
-                board.add_piece(grid_row, grid_col, player_id[current_player])
-                numsteps = board.do_overflow(overflow_boards)
-                if numsteps != 0:
-                    overflowing = True
-                    repeat_step = 0
+        win = board.check_win()
+        if win != 0:
+            winner = 1
+            if win == -1:
+                winner = 2
+            has_winner = True
+
+        if not has_winner:
+            if overflowing:
+                status[0] = "Overflowing"
+                if not overflow_boards.is_empty():
+                    if repeat_step == FULL_DELAY:
+                        next = overflow_boards.dequeue()
+                        board.set(next)
+                        repeat_step = 0
+                    else:
+                        repeat_step += 1
                 else:
+                    overflowing = False
+
+                    # goes between 0 and 1
                     current_player = (current_player + 1) % 2
-                grid_row = -1
-                grid_col = -1
 
-    # Draw the game board
-    window.fill(WHITE)
-    board.draw(window, frame)
-    window.blit(p1_sprites[math.floor(frame)], (850, 60))
-    window.blit(p2_sprites[math.floor(frame)], (850, 120))
-    frame = (frame + 0.5) % 8
-    player1_dropdown.draw(window)
-    player2_dropdown.draw(window)
+            else:
+                status[0] = "Player " + str(current_player + 1) + "'s turn"
+                make_move = False
+                if choice[current_player] == 1:
+                    (grid_row, grid_col) = bots[current_player].get_play(
+                        board.get_board(), tree_height)
+                    status[1] = "Bot chose row {}, col {}".format(
+                        grid_row, grid_col)
+                    if not board.valid_move(grid_row, grid_col, player_id[current_player]):
+                        has_winner = True
+                        # if p1 makes an invalid move, p2 wins.  if p2 makes an invalid move p1 wins
+                        winner = ((current_player + 1) % 2) + 1
+                    else:
+                        make_move = True
+                else:
+                    if board.valid_move(grid_row, grid_col, player_id[current_player]):
+                        make_move = True
 
-    if not has_winner:
-        text = font.render(status[0], True, (0, 0, 0))  # Black color
-        window.blit(text, (X_OFFSET, 750))
-        text = font.render(status[1], True, (0, 0, 0))  # Black color
-        window.blit(text, (X_OFFSET,  700))
-    else:
-        text = bigfont.render("Player " + str(winner) +
-                              " wins!", True, (0, 0, 0))  # Black color
-        window.blit(text, (300, 250))
+                if make_move:
+                    board.add_piece(grid_row, grid_col,
+                                    player_id[current_player])
+                    numsteps = board.do_overflow(overflow_boards)
+                    if numsteps != 0:
+                        overflowing = True
+                        repeat_step = 0
+                    else:
+                        current_player = (current_player + 1) % 2
+                    grid_row = -1
+                    grid_col = -1
 
-    pygame.display.update()
-    pygame.time.delay(100)
+        # Draw the game board
+        window.fill(WHITE)
+        board.draw(window, frame)
+        window.blit(p1_sprites[math.floor(frame)], (850, 60))
+        window.blit(p2_sprites[math.floor(frame)], (850, 120))
+        frame = (frame + 0.5) % 8
+        player1_dropdown.draw(window)
+        player2_dropdown.draw(window)
+        level_dropdown.draw(window)
+
+        text = font.render("Press 'r' to restart", True,
+                           (0, 0, 0))  # Black color
+        window.blit(text, (X_OFFSET, 650))
+        if not has_winner:
+            text = font.render(status[0], True, (0, 0, 0))  # Black color
+            window.blit(text, (X_OFFSET, 750))
+            text = font.render(status[1], True, (0, 0, 0))  # Black color
+            window.blit(text, (X_OFFSET,  700))
+
+        else:
+            text = bigfont.render("Player " + str(winner) +
+                                  " wins!", True, (0, 0, 0))  # Black color
+            window.blit(text, (300, 250))
+
+        pygame.display.update()
+        pygame.time.delay(100)
 
 pygame.quit()
 sys.exit()

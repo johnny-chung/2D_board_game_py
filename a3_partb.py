@@ -1,5 +1,5 @@
 # Main Author: Wai Yin Chung
-# Main Reviewer:
+# Main Reviewer: Wai Tan Wong, Chi Cheung Cheung
 
 # This function duplicates and returns the board. You may find this useful
 
@@ -31,8 +31,7 @@ class GameTree:
             a_queue = Queue()
             if depth > 0 and overflow(self.board, a_queue) > 0:
                 while a_queue:
-                    self.board = a_queue.dequeue()
-
+                    self.board = a_queue.dequeue()            
             # store other parameter
             self.depth = depth
             self.player = player
@@ -70,7 +69,7 @@ class GameTree:
         self.tree_height = tree_height
         self.player = player
         self.board = copy_board(board)
-
+        print(tree_height)
         # store max row, col
         self.max_row = len(board)
         self.max_col = len(board[0])
@@ -79,7 +78,7 @@ class GameTree:
         self.winning_score = winning_score_base * self.max_row * self.max_col
 
         # create a root
-        self.root = GameTree.Node(board, 0, player)
+        self.root = GameTree.Node(board, 0, player, (-1, -1), tree_height)
 
         # generate the moves from root
         self.create_children(1, player, self.root)
@@ -131,7 +130,13 @@ class GameTree:
 
     # clear the tree by assign it to None
     def clear_tree(self):
-        self.root = None
+        self.clear_tree_rec(self.root)
+
+    def clear_tree_rec(self, subtree):
+        if subtree.children is None:
+            return
+        self.clear_tree_rec(subtree.children)
+        subtree.children.arr.clear()
 
 
 # =======================================
